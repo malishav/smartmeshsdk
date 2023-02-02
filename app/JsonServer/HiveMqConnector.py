@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt
 import requests
 import re
 
-TOPIC = "iotbanjaluka"
+TOPIC = "iotprona"
 
 #============================ receive from manager ============================
 
@@ -13,13 +13,19 @@ TOPIC = "iotbanjaluka"
 def all(path):
     global mqtt_client
     notif = json.loads(request.body.getvalue())
+    msg = {}
     if notif['name']=='oap' and notif['fields']['channel_str']=='temperature':
         mac         = notif['mac']
         temperature = notif['fields']['samples'][0]/100.0
-        msg         = 'mac={} temperature={}'.format(mac,temperature)
-        print(msg)
-        mqtt_client.publish(TOPIC, payload=msg)
-
+        msg['mac'] = mac
+        msg['temperature'] = temperature
+    elif notif['name']=='notifData':
+        mac         = notif['fields']['macAddress']
+        data        = notif['fields']['data']
+        msg['mac']  = mac
+        msg['data'] = data
+    print(msg)
+    mqtt_client.publish(TOPIC, payload=json.dumps(msg))
 #============================ receive from broker =============================
 
 def mqtt_on_message(client, userdata, msg):
