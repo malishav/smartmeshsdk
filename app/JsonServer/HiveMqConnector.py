@@ -31,35 +31,20 @@ def all(path):
 def mqtt_on_message(client, userdata, msg):
     payload = msg.payload.decode('ascii')
     print('from MQTT: {}'.format(payload))
-    if 'buzzer' in payload:
-        mac = payload.split(' ')[0].lower()
-        mac = '00-17-0d-00-00-{}-{}-{}'.format(mac[0:2],mac[2:4],mac[4:6])
-        if   'buzzer on' in payload:
-            value = 1
-        elif 'buzzer off' in payload:
-            value = 0
-        else:
-            value = None
-        if value in [0,1]:
-            requests.put(
-                'http://127.0.0.1:8080/api/v1/oap/{}/digital_out/D4'.format(mac), 
-                json={"value":value},
-            )
-    if 'led' in payload:
-        mac = payload.split(' ')[0].lower()
-        mac = '00-17-0d-00-00-{}-{}-{}'.format(mac[0:2],mac[2:4],mac[4:6])
-        if   'led on' in payload:
-            value = 1
-        elif 'led off' in payload:
-            value = 0
-        else:
-            value = None
-        if value in [0,1]:
-            requests.put(
-                'http://127.0.0.1:8080/api/v1/oap/{}/digital_out/INDICATOR_0'.format(mac), 
-                json={"value":value},
-            )
 
+    mac = payload.split(' ')[0].lower()
+    httppayload = payload.replace(mac, '')
+    httppayload = httppayload.replace(' ', '', 1)
+
+    mac = '00-17-0d-00-00-{}-{}-{}'.format(mac[0:2],mac[2:4],mac[4:6])
+
+
+    requests.post(
+            'http://127.0.0.1:8080/api/v2/raw/sendData'.format(mac),
+            json={'payload': httppayload,
+                  'manager': '/dev/tty.usbserial-142303',
+                  'mac': mac },
+            )
 #============================ connect MQTT ====================================
 
 def mqtt_on_connect(client, userdata, flags, rc):

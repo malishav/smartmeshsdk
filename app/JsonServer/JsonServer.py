@@ -126,6 +126,8 @@ class JsonServer(object):
         self.websrv.route('/api/v1/status',                               'GET',    self._webhandle_status_GET)
         #=== raw
         self.websrv.route('/api/v1/raw',                                  'POST',   self._webhandle_raw_POST)
+        #=== raw data to the mote
+        self.websrv.route('/api/v2/raw/sendData',                         'POST',   self._webhandle_raw_sendData_POST)
         #=== oap
         # /info
         self.websrv.route('/api/v1/oap/<mac>/info',                       'GET',    self._webhandle_oap_info_GET)
@@ -299,6 +301,22 @@ class JsonServer(object):
         
         return self.jsonManager.raw_POST(commandArray, fields, manager)
     
+    #=== raw data send to mote
+
+    def _webhandle_raw_sendData_POST(self):
+        manager = bottle.request.json['manager']
+        mac = bottle.request.json['mac']
+        mac = [int(b,16) for b in mac.split('-')]
+        payload = bottle.request.json['payload']
+        self.jsonManager.managerHandlers[manager].connector.dn_sendData(
+                macAddress   = mac,
+                priority     = 0,
+                srcPort      = 0xf0b8,
+                dstPort      = 0xf0b8,
+                options      = 0,
+                data         = [ord(i) for i in payload],
+            )
+
     #=== oap
     
     # /info
