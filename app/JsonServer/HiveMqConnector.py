@@ -6,6 +6,7 @@ import requests
 import re
 
 TOPIC = "iotprona"
+TOPIC_DOWNSTREAM = "iotprona/sendData"
 
 #============================ receive from manager ============================
 
@@ -48,7 +49,7 @@ def mqtt_on_message(client, userdata, msg):
 #============================ connect MQTT ====================================
 
 def mqtt_on_connect(client, userdata, flags, rc):
-    client.subscribe(TOPIC)
+    client.subscribe(TOPIC_DOWNSTREAM)
     print("MQTT connected")
 
 mqtt_client = mqtt.Client()
