@@ -308,13 +308,19 @@ class JsonServer(object):
         mac = bottle.request.json['mac']
         mac = [int(b,16) for b in mac.split('-')]
         payload = bottle.request.json['payload']
+        if isinstance(payload, str):
+            payload = [ord(i) for i in payload]
+        elif isinstance(payload, list):
+            pass
+        else:
+            raise(ValueError)
         self.jsonManager.managerHandlers[manager].connector.dn_sendData(
                 macAddress   = mac,
                 priority     = 0,
                 srcPort      = 0xf0b8,
                 dstPort      = 0xf0b8,
                 options      = 0,
-                data         = [ord(i) for i in payload],
+                data         = payload,
             )
 
     #=== oap
