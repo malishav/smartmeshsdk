@@ -36,6 +36,7 @@ def all(path):
 
                 # save the responder into existing sessions
                 sessions[c_r] = responder
+                print("Saved Responder {} to sessions, C_R = {}".format(sessions[c_r], c_r))
 
                 requests.post(
                     'http://127.0.0.1:8080/api/v2/raw/sendData',
@@ -49,13 +50,16 @@ def all(path):
             # EDHOC message 3, retrieve the responder
             try:
                 c_r = data[0]
+                print("EDHOC message 3 received, C_R = {}".format(c_r))
                 responder = sessions[c_r]
 
-                id_cred_i, ead_3 = responder.parse_message_3(message_3)
+                id_cred_i, ead_3 = responder.parse_message_3(data[1:])
                 valid_cred_i = lakers.credential_check_or_fetch(id_cred_i, CRED_I)
                 r_prk_out = responder.verify_message_3(valid_cred_i)
                 print("Handshake completed!")
                 print("PRK_OUT: {}".format(r_prk_out))
+                print("Dropping responder")
+                sessions.pop(c_r)
             except Exception as e:
                 print(e)
 
