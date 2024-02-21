@@ -5,8 +5,8 @@ import paho.mqtt.client as mqtt
 import requests
 import re
 
-TOPIC = "iotprona"
-TOPIC_DOWNSTREAM = "iotprona/sendData"
+TOPIC = "aiotacademy"
+TOPIC_DOWNSTREAM = "aiotacademy/sendData"
 
 #============================ receive from manager ============================
 
