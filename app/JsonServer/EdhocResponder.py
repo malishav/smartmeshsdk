@@ -21,56 +21,79 @@ authorized_motes = {}
 
 @route('<path:path>', method='ANY')
 def all(path):
-#   global responder
     global mqtt_client
     message = json.loads(request.body.getvalue())
 
     if message['name']=='notifData':
         mac = message['fields']['macAddress']
         data = message['fields']['data']
-        if mac not in authorized_motes.keys():
-            if data[0] == 0xf5:
+        if is_edhoc_message_1(data):
+            handle_edhoc_message_1(mac, data)
+        elif is_edhoc_message_3(data):
+            handle_edhoc_message_3(mac, data)
+        else: # check if mote is authorized, if so publish on MQTT
+            if mac in authorized_motes.keys():
                 try:
-                    # create new responder
-                    responder = lakers.EdhocResponder(R, CRED_R)
-                    c_r = randint(0, 24)
-                    ead_1 = responder.process_message_1(data[1:])
-                    message_2 = responder.prepare_message_2(lakers.CredentialTransfer.ByReference, c_r, None)
-                    print("Message_2: {}".format(bytes(message_2).hex()))
-
-                    # save the responder into existing sessions
-                    ongoing_sessions[c_r] = responder
-                    print("Saved Responder {} to sessions, C_R = {}".format(ongoing_sessions[c_r], c_r))
-
-                    requests.post(
-                        'http://127.0.0.1:8080/api/v2/raw/sendData',
-                        json={'payload': message_2,
-                              'manager': MANAGER_SERIAL,
-                            'mac': mac },
-                    )
-                except Exception as e:
-                    print("Unauthorized message from {}".format(mac))
+                    print("Mote {} published: {}".format(mac, ''.join(chr(x) for x in data)))
+                except:
+                    print("Mote {} published: {}".format(mac, data))
+                mqtt_client.publish(TOPIC, payload=json.dumps(data))
             else:
-                # EDHOC message 3, retrieve the responder
-                try:
-                    c_r = data[0]
-#                    print("EDHOC message 3 received, C_R = {}".format(c_r))
-                    responder = ongoing_sessions[c_r]
-
-                    id_cred_i, ead_3 = responder.parse_message_3(data[1:])
-                    valid_cred_i = lakers.credential_check_or_fetch(id_cred_i, CRED_I)
-                    r_prk_out = responder.verify_message_3(valid_cred_i)
-                    print("Handshake with {} completed. PRK_OUT: {}!".format(mac, r_prk_out))
-                    ongoing_sessions.pop(c_r)
-                    authorized_motes[mac] = r_prk_out
-                except Exception as e:
-                    print("Unauthorized message from {}".format(mac))
-        else: # else mote is authorized, publish on MQTT
-            print("Mote {} published: {}".format(mac, data))
-            mqtt_client.publish(TOPIC, payload=json.dumps(data))
+                print("Unauthorized message from {}".format(mac))
     else:
         # periodic health reports sent by the device, ignore
         pass
+
+def handle_edhoc_message_1(mac, message_1):
+    try:
+        print("Message 1 from {} received".format(mac))
+        # create new responder
+        responder = lakers.EdhocResponder(R, CRED_R)
+        c_r = randint(0, 24)
+        ead_1 = responder.process_message_1(message_1[1:])
+        message_2 = responder.prepare_message_2(lakers.CredentialTransfer.ByReference, c_r, None)
+        # save the responder into existing sessions
+        ongoing_sessions[c_r] = responder
+
+        requests.post(
+            'http://127.0.0.1:8080/api/v2/raw/sendData',
+            json={'payload': list(message_2),
+            'manager': MANAGER_SERIAL,
+            'mac': mac },
+        )
+    except Exception as e:
+        print("Exception in message_1 handling from {}. Exception: {}".format(mac, e))
+
+def handle_edhoc_message_3(mac, message_3):
+    # EDHOC message 3, retrieve the responder
+    try:
+        print("Message 3 from {} received".format(mac))
+        c_r = message_3[0]
+        responder = ongoing_sessions[c_r]
+
+        id_cred_i, ead_3 = responder.parse_message_3(message_3[1:])
+        valid_cred_i = lakers.credential_check_or_fetch(id_cred_i, CRED_I)
+        r_prk_out = responder.verify_message_3(valid_cred_i)
+        print("Handshake with {} completed. PRK_OUT: {}".format(mac, ' '.join(hex(x) for x in r_prk_out)))
+        ongoing_sessions.pop(c_r)
+        authorized_motes[mac] = r_prk_out
+    except Exception as e:
+        print("Exception in message_3 handling from {}. Exception {}".format(mac, e))
+
+# Check whether a message is an EDHOC messsage based on first byte
+def is_edhoc_message(data):
+    if is_edhoc_message_1(data) or is_edhoc_message_3(data):
+        return True
+    else:
+        return False
+
+def is_edhoc_message_1(data):
+    if data[0] == 0xf5:
+        return True
+
+def is_edhoc_message_3(data):
+    if data[0] in ongoing_sessions.keys():
+        return True
 
 #============================ connect MQTT ====================================
 def mqtt_on_message(client, userdata, msg):
