@@ -4,8 +4,12 @@ import paho.mqtt.client as mqtt
 import json
 import lakers
 import requests
+import sys
 
-MANAGER_SERIAL = '/dev/tty.usbserial-144303'
+if len(sys.argv) == 2:
+    MANAGER_SERIAL = sys.argv[1]
+else:
+    MANAGER_SERIAL = '/dev/tty.usbserial-144303'
 
 TOPIC = "aiotacademy"
 
@@ -49,7 +53,7 @@ def handle_edhoc_message_1(mac, message_1):
         print("Message 1 from {} received".format(mac))
         # create new responder
         responder = lakers.EdhocResponder(R, CRED_R)
-        c_r = randint(0, 24)
+        c_r = bytes([randint(0, 24)])
         ead_1 = responder.process_message_1(message_1[1:])
         message_2 = responder.prepare_message_2(lakers.CredentialTransfer.ByReference, c_r, None)
         # save the responder into existing sessions
@@ -68,7 +72,7 @@ def handle_edhoc_message_3(mac, message_3):
     # EDHOC message 3, retrieve the responder
     try:
         print("Message 3 from {} received".format(mac))
-        c_r = message_3[0]
+        c_r = bytes([message_3[0]])
         responder = ongoing_sessions[c_r]
 
         id_cred_i, ead_3 = responder.parse_message_3(message_3[1:])
@@ -92,7 +96,7 @@ def is_edhoc_message_1(data):
         return True
 
 def is_edhoc_message_3(data):
-    if data[0] in ongoing_sessions.keys():
+    if bytes([data[0]]) in ongoing_sessions.keys():
         return True
 
 #============================ connect MQTT ====================================
