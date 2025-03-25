@@ -39,7 +39,7 @@ def all(path):
                     print("Mote {} published: {}".format(mac, data))
                 mqtt_client.publish(TOPIC, payload=json.dumps(data))
             else:
-                print("Unauthorized message from {}".format(mac))
+                print("Unauthorized message from {}. Data received: ".format(mac, data))
     else:
         # periodic health reports sent by the device, ignore
         pass
@@ -62,7 +62,7 @@ def handle_edhoc_message_1(mac, message_1):
             'mac': mac },
         )
     except Exception as e:
-        print("Exception in message_1 handling from {}. Exception: {}".format(mac, e))
+        print("Exception in message_1 handling from {}. Exception: {}. Data received: {}".format(mac, e, message_1))
 
 def handle_edhoc_message_3(mac, message_3):
     # EDHOC message 3, retrieve the responder
