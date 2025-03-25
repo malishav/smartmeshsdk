@@ -51,7 +51,7 @@ def handle_edhoc_message_1(mac, message_1):
         responder = lakers.EdhocResponder(R, CRED_R)
         c_r = randint(0, 24)
         ead_1 = responder.process_message_1(message_1[1:])
-        message_2 = responder.prepare_message_2(lakers.CredentialTransfer.ByReference, c_r, None)
+        message_2 = responder.prepare_message_2(lakers.CredentialTransfer.ByReference, c_r.to_bytes(1,'big'), None)
         # save the responder into existing sessions
         ongoing_sessions[c_r] = responder
 
