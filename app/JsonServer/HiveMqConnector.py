@@ -5,6 +5,7 @@ import paho.mqtt.client as mqtt
 import requests
 import re
 
+MANAGER = "/dev/tty.usbserial-143203"
 TOPIC = "aiotacademy"
 TOPIC_DOWNSTREAM = "aiotacademy/sendData"
 
@@ -15,18 +16,19 @@ def all(path):
     global mqtt_client
     notif = json.loads(request.body.getvalue())
     msg = {}
-    if notif['name']=='oap' and notif['fields']['channel_str']=='temperature':
-        mac         = notif['mac']
-        temperature = notif['fields']['samples'][0]/100.0
-        msg['mac'] = mac
-        msg['temperature'] = temperature
-    elif notif['name']=='notifData':
-        mac         = notif['fields']['macAddress']
-        data        = notif['fields']['data']
-        msg['mac']  = mac
-        msg['data'] = data
-    print(msg)
-    mqtt_client.publish(TOPIC, payload=json.dumps(msg))
+    if 'name' in notif.keys():
+        if notif['name']=='oap' and notif['fields']['channel_str']=='temperature':
+            mac         = notif['mac']
+            temperature = notif['fields']['samples'][0]/100.0
+            msg['mac'] = mac
+            msg['temperature'] = temperature
+        elif notif['name']=='notifData':
+            mac         = notif['fields']['macAddress']
+            data        = notif['fields']['data']
+            msg['mac']  = mac
+            msg['data'] = data
+        print(msg)
+        mqtt_client.publish(TOPIC, payload=json.dumps(msg))
 #============================ receive from broker =============================
 
 def mqtt_on_message(client, userdata, msg):
@@ -43,7 +45,7 @@ def mqtt_on_message(client, userdata, msg):
     requests.post(
             'http://127.0.0.1:8080/api/v2/raw/sendData'.format(mac),
             json={'payload': httppayload,
-                  'manager': '/dev/tty.usbserial-142303',
+                  'manager': MANAGER,
                   'mac': mac },
             )
 #============================ connect MQTT ====================================
@@ -55,7 +57,7 @@ def mqtt_on_connect(client, userdata, flags, rc):
 mqtt_client = mqtt.Client()
 mqtt_client.on_connect = mqtt_on_connect
 mqtt_client.on_message = mqtt_on_message
-mqtt_client.connect("broker.mqttdashboard.com", 1883, 60)
+mqtt_client.connect("argus.paris.inria.fr", 1883, 60)
 mqtt_client.loop_start()
 
 #============================ sart web server =================================

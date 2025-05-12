@@ -37,7 +37,7 @@ def all(path):
                     print("Mote {} published: {}".format(mac, ''.join(chr(x) for x in data)))
                 except:
                     print("Mote {} published: {}".format(mac, data))
-                mqtt_client.publish(TOPIC, payload=json.dumps(data))
+                mqtt_client.publish(TOPIC, payload=json.dumps(''.join(chr(x) for x in data)))
             else:
                 print("Unauthorized message from {}. Data received: ".format(mac, data))
     else:
